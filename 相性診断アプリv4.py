@@ -3,7 +3,8 @@ import os
 from openai import OpenAI
 
 # APIキーの設定
-os.environ["OPENAI_API_KEY"] = " 各自で入れる"
+os.environ["OPENAI_API_KEY"] = "各自で入力"
+
 client = OpenAI()
 
 # セッションステートの初期化
@@ -11,6 +12,7 @@ if "partner_personality" not in st.session_state:
     st.session_state["partner_personality"] = ""
 if "diagnosis_result" not in st.session_state:  # 性格診断結果を保持するためのセッションステート
     st.session_state["diagnosis_result"] = None
+
 
 # 性格タイプのデータ
 personality_descriptions = {
@@ -197,7 +199,7 @@ if user_age == 23 and user_personality == "ENFJ - 主人公":
 
 # サイドバーに診断スタイルを表示
 style = st.sidebar.selectbox("診断スタイルを選んでください", options=content_styles)
-
+st.session_state["style"] = style  # スタイルをセッションステートに保存
 
 # GPTへのリクエスト
 def run_gpt(user_data, partner_data, relationship, user_role, style):
@@ -231,8 +233,12 @@ def run_gpt(user_data, partner_data, relationship, user_role, style):
     - 可能な限りポジティブなトーンを使用し、双方が改善の余地を感じられるようにしてください。
     - 年齢が１０歳以上離れている時は、必ず年齢差による影響に言及ください
     - 診断結果を表示するときは、タイプの表記で回答するのではなく、「あなた」と「相手」という表記にしてください。
-    - 診断スタイルが「明石家さんま風」のときは語尾にランダムで「知らんけど」とつけてください。
-    - 診断スタイルが「りじちょー」のときは、【診断結果フォーマット】を無視して必ず「性格診断なんか関係あらへん、早く行きたければ一人で進め！遠くまで行きたければみんなで勧め！」という回答だけ表示してください。
+    - {style}が{["関西弁ですごくてきとうな回答（明石家さんま風）"]}のときは語尾に無作為で「知らんけど」とつけてください。
+    - {style}が{["モチベーションが上がる熱い関西弁の回答（本田圭佑風）"]}のときは必ず「伸びしろ」という表現を使ってください。
+    
+    【特記事項】
+    - {style}に応じて、文体や言い回しを調整してください。
+    
     """
     try:
         response = client.chat.completions.create(
@@ -243,36 +249,52 @@ def run_gpt(user_data, partner_data, relationship, user_role, style):
     except Exception as e:
         st.error(f"APIリクエストエラー: {e}")
         return None
+
 # 診断ボタンが押されたかどうかを記録
 if "diagnosis_started" not in st.session_state:
     st.session_state["diagnosis_started"] = False
 
 # 「診断を開始」ボタン
 if st.button("診断を開始"):
-    st.session_state["diagnosis_started"] = True  # 診断開始を記録
-    partner_personality = st.session_state.get("partner_personality", "")
-    if partner_personality:
-        user_data = {"age": user_age, "mebi": user_personality}
-        partner_data = {"age": partner_age, "mebi": partner_personality}
-        result = run_gpt(user_data, partner_data, relationship, user_role, style)
-        if result:
-            st.markdown(f"<h2>診断結果</h2>", unsafe_allow_html=True)
-            st.markdown(result, unsafe_allow_html=True)
+    # スタイルをセッションステートから取得
+    current_style = st.session_state["style"]
+    
+    if current_style == "りじちょー":
+        # 「りじちょー」スタイルの特別なメッセージを表示（赤色で）
+        red_text = """
+        <style>
+        .red-text {
+          color: red;
+          font-size: 24px;
+        }
+        </style>
+        <div class='red-text'>性格診断なんか関係あらへん、早く行きたければ一人で進め！遠くまで行きたければみんなで進め！</div>
+        """
+        st.markdown(red_text, unsafe_allow_html=True)
+        
+        # 「りじちょー.png」のパスを指定
+        rijicho_image_path = os.path.join(image_dir, "りじちょー.png")
+        # 画像の存在を確認して表示
+        if os.path.exists(rijicho_image_path):
+            st.image(rijicho_image_path, caption="りじちょー", use_container_width=True)
         else:
-            st.warning("診断結果が取得できませんでした。")
-    else:
-        st.warning("相手の性格診断を完了してください！")
+            st.error("「りじちょー.png」の画像が見つかりませんでした")
 
-# 診断後に「りじちょー.png」を表示
-if st.session_state["diagnosis_started"] and style == "りじちょー":
-    # 「りじちょー.png」のパスを指定
-    rijicho_image_path = os.path.join(image_dir, "りじちょー.png")
-
-    # 画像の存在を確認して表示
-    if os.path.exists(rijicho_image_path):
-        st.image(rijicho_image_path, caption="りじちょー", use_container_width=True)
     else:
-        st.write("「りじちょー.png」の画像が見つかりませんでした")
+        # 通常の診断処理
+        st.session_state["diagnosis_started"] = True
+        partner_personality = st.session_state.get("partner_personality", "")
+        if partner_personality:
+            user_data = {"age": user_age, "mebi": user_personality}
+            partner_data = {"age": partner_age, "mebi": partner_personality}
+            result = run_gpt(user_data, partner_data, relationship, user_role, style)
+            if result:
+                st.markdown(f"<h2>診断結果</h2>", unsafe_allow_html=True)
+                st.markdown(result, unsafe_allow_html=True)
+            else:
+                st.warning("診断結果が取得できませんでした。")
+        else:
+            st.warning("相手の性格診断を完了してください！")
 
 
 
