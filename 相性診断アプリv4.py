@@ -3,8 +3,7 @@ import os
 from openai import OpenAI
 
 # APIキーの設定
-os.environ["OPENAI_API_KEY"] = "各自で入れる"
-
+os.environ["OPENAI_API_KEY"] = " 各自で入れる"
 client = OpenAI()
 
 # セッションステートの初期化
@@ -12,7 +11,6 @@ if "partner_personality" not in st.session_state:
     st.session_state["partner_personality"] = ""
 if "diagnosis_result" not in st.session_state:  # 性格診断結果を保持するためのセッションステート
     st.session_state["diagnosis_result"] = None
-
 
 # 性格タイプのデータ
 personality_descriptions = {
