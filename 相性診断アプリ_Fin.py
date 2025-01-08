@@ -3,7 +3,7 @@ import os
 from openai import OpenAI
 
 # APIキーの設定
-api_key = st.secrets["api_key"] 
+api_key = st.secrets["ai_key"] 
 
 client = OpenAI(api_key=api_key)
 
